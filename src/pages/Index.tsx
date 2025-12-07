@@ -8,8 +8,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 
+const RSVP_API_URL = 'https://functions.poehali.dev/be7c3c26-c632-4e05-be60-b12713864f29';
+
 const Index = () => {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     attendance: 'yes',
@@ -19,20 +22,52 @@ const Index = () => {
     phone: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Спасибо!",
-      description: "Ваш ответ принят. Мы свяжемся с вами.",
-    });
-    setFormData({
-      name: '',
-      attendance: 'yes',
-      guests: '1',
-      message: '',
-      email: '',
-      phone: ''
-    });
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(RSVP_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          attendance: formData.attendance,
+          guests: parseInt(formData.guests),
+          email: formData.email,
+          phone: formData.phone,
+          message: formData.message
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка отправки');
+      }
+
+      toast({
+        title: "Спасибо!",
+        description: "Ваш ответ принят. Мы свяжемся с вами.",
+      });
+      
+      setFormData({
+        name: '',
+        attendance: 'yes',
+        guests: '1',
+        message: '',
+        email: '',
+        phone: ''
+      });
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось отправить ответ. Попробуйте позже.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const scrollToSection = (id: string) => {
@@ -277,8 +312,12 @@ const Index = () => {
                   />
                 </div>
 
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-lg py-6">
-                  Отправить ответ
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="w-full bg-primary hover:bg-primary/90 text-lg py-6 disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Отправка...' : 'Отправить ответ'}
                 </Button>
               </form>
             </CardContent>
